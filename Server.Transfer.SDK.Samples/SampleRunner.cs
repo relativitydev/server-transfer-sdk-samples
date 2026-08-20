@@ -50,11 +50,7 @@ namespace Relativity.Server.Transfer.SDK.Samples
         {
             string transferMode = ConfigurationManager.AppSettings["TransferMode"];
 
-            if (string.Equals(transferMode, "Aspera", StringComparison.OrdinalIgnoreCase))
-            {
-                return TransferMode.Aspera;
-            }
-            else if (string.Equals(transferMode, "Fileshare", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(transferMode, "Fileshare", StringComparison.OrdinalIgnoreCase))
             {
                 return TransferMode.Fileshare;
             }

@@ -8,7 +8,6 @@ namespace Relativity.Server.Transfer.SDK.Samples.Enums
 {
     public enum TransferMode
     {
-        Aspera,
         Fileshare
     }
 }
