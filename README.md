@@ -1,4 +1,7 @@
 # Relativity Transfer API for .NET
+
+> **Note:** This is the Relativity **Server** Transfer API for on-premises Relativity Server deployments — it is actively supported. The RelativityOne version of this API (`Relativity.Transfer.Client`) was deprecated on December 5, 2022. If you are on RelativityOne, see [Relativity.Transfer.SDK](https://www.nuget.org/packages/Relativity.Transfer.SDK/) instead.
+
 You can use the Transfer API (TAPI) to build application components that connect to Relativity and stream data from external sources into Relativity storage using different transfer protocols, for example, SMB. You can also stream data from Relativity. The API enables optimized data transfer with extensible client architecture and event model using Relativity authentication and logging. For example, you can use the Transfer API to develop an application that loads case data into Relativity for subsequent processing. Unlike the Import API, TAPI doesn't create Relativity objects associated with the data, for example, documents and RDOs.
 
 ## Core TAPI features
@@ -20,11 +23,21 @@ We are  providing a sample solution to help you get started developing your own 
 ## System requirements
 * Bluestem release for RelativityOne or on-premises Relativity
 * .NET 4.8.1
-* Visual C++ 2010 x86 Runtime
 * Intel 2Ghz (2-4 cores is recommended)
 * 8GB RAM (32GB of RAM is recommended)
 
-***Note:** The Visual C++ runtime is required for Open SSL.**
+## NuGet packages
+
+Relativity Server SDK packages are published to Artifactory. Use one of the following regional NuGet feeds:
+
+| Region | Feed URL |
+|--------|----------|
+| US East | `https://relativitypackageseastus.jfrog.io/artifactory/api/nuget/v3/server-nuget-virtual` |
+| West Europe | `https://relativitypackageswesteurope.jfrog.io/artifactory/api/nuget/v3/server-nuget-virtual` |
+
+The `nuget.config` file included in this repository is pre-configured with the US East feed and uses [package source mapping](https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping) to route all `Relativity.Server.*` packages to Artifactory automatically. Review it before restoring packages.
+
+For full setup instructions, SDK requirements, and migration guidance see the [Relativity Server SDK documentation](https://platform.relativity.com/Server2025/Content/What_s_new/Server_SDK_Changes.htm).
 
 ## Integrations
 As of this writing, TAPI is now integrated within the following components and applications:
@@ -191,7 +204,6 @@ The next sections cover TAPI usage including:
 * [Workspaces and the default file share](#workspaces-and-the-default-file-share)
 * [Targeting file shares](#targeting-file-shares)
 * [Local and remote enumeration](#local-and-remote-enumeration)
-* [Change job data rate](#change-job-data-rate)
 * [Transfer events and statistics](#transfer-events-and-statistics)
 * [Transfer application performance monitoring and metrics](#transfer-application-performance-monitoring-and-metrics)
 * [Error handling and ITransferIssue](#error-handling-and-itransferissue)
@@ -820,7 +832,7 @@ var enumeration = EnumerationBuilder
 ```
 
 TAPI provides the following implementations of `INodeFilter` - you can define your own.
-* `AspxExtensionFilter` - filters out all files with `.aspx` extension,
+* `AspxExtensionFilter` - filters out all files with `.aspx` extension, as `.aspx` files are not supported for upload,
 * `NoReadAccessFileNodeFilter` - checks user's permission against a file (can slow down enumeration significantly),
 * `PathLengthFilter` - finds paths longer than the file share supports,
 * `R1PathSizeFilter` - finds paths longer than RelativityOne supports.
@@ -897,23 +909,6 @@ public interface EnumerationBuilder : IEnumerationNecessaryActionsBuilder, IEnum
     IEnumerationFinalActionsBuilder WithBatching(INode destinationNode, IDirectory batchSerializationDirectory, IEnumerationHandler<SerializedBatch> batchCreatedHandler);
 
     IEnumerationOrchestrator Create();
-}
-```
-
-
-### Change job data rate
-The `ClientConfiguration` object supports setting a minimum and target data rate. There are situations where the API user would like to *change* the data rate at runtime. To facilitate this feature, the `ITransferJob` object allows each TAPI client to provide an implementation.
-
-Note that not all clients support this feature. Any attempt to call this method on a client that doesn't support setting or changing the data rate will throw `NotSupportedException`. To provide the API user a cleaner way to use this feature, the `IsDataRateChangedSupported` property is provided.
-
-```csharp
-using (ITransferJob job = await client.CreateJobAsync(request))
-{
-    if (job.IsDataRateChangeSupported)
-    {
-        job.ChangeDataRate(0, 200);
-        Console.WriteLine($"Changed the data rate. Min=0 Mbps, Target=200 Mbps.");
-    }
 }
 ```
 
@@ -1106,7 +1101,7 @@ If TAPI determines that a transfer error can be retried, it will attempt to retr
 
 | Setting Name          | Description |
 | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| BadPathErrorsRetry    | When TAPI encounters a bad path error, it will use this setting to determine whether it should retry. TAPI has checks in place to prevent paths from being passed in that are invalid or otherwise not able to be transferred. |
+| BadPathErrorsRetry    | When TAPI encounters a bad path error, it will use this setting to determine whether it should retry. TAPI has checks in place to prevent invalid paths from being added to the transfer job queue. |
 | PermissionErrorsRetry | When TAPI encounters a permission error when transferring, it will use this setting to determine whether it should retry. |
 
 The `ITransferStatistics` object has properties that indicate how many times the above errors have been encountered and retried. This object has a count of TotalBadPathErrors and TotalFilePermissionsErrors, which will be incremented every time these errors are encountered.
@@ -1130,6 +1125,7 @@ A number of common but optional settings are exposed by the `GlobalSettings` sin
 | MaxBytesPerBatch                           | The maximum number of bytes per batch. This is only applicable when transferring via serialized batches.                                             | 100GB                                              |
 | MaxFilesPerBatch                           | The maximum number of files per batch. This is only applicable when transferring via serialized batches.                                             | 50,000                                             |
 | MemoryProtectionScope                      | The memory protection scope applied to all data protection API (DPAPI) usage.                                                                        | MemoryProtectionScope.SameProcess                  |
+| NodePageSize                               | The default page size when retrieving paged results from transfer-related REST API calls.                                                             | 100                                                |
 | PluginDirectory                            | The directory where all plugins are located.                                                                                                         | Working directory                                  |
 | PluginFileNameFilter                       | The file name filter to limit which files are searched for plugins.                                                                                  | *.dll                                              |
 | PluginFileNameMatch                        | The file name match expression to limit which files are searched for plugins.                                                                        | Relativity.Transfer                                |
