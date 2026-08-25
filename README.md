@@ -1,26 +1,5 @@
-> **NOTE**: Relativity.Transfer.Client version 7.4.10 (and below) **will stop functioning end of Q4 2023** (we will communicate the precise date 3 months before) due to migration of data transfer related products to cloud based solutions. 
-
->**Check out Relativity.Transfer.SDK ([NuGet](https://www.nuget.org/packages/Relativity.Transfer.SDK/)), a successor of this library. It works with all types of fileshares, it's faster and simpler in use!**
->
-> Since it is going to be **a breaking change** you will need to **update your code** and integrate with the **Relativity.Transfer.SDK**, version 1.0.0+
->
-> On December 5th, 2022 we have released the first version (1.0.3) including:
-> * Upload a single file or a directory to the RelativityOne fileshare 
-> * Track data transfer progress (including files that were transferred, skipped or failed, with their source and destination path)
-> * Recover transfer from previous failure or interruption 
-> * Real time information about succeeded, failed and skipped items, including exact path and the reason of error 
-> * Cross platform compatibility - you can transfer data from Windows, Linux and macOS 
-> * Secured transfer using HTTPS, only single TCP 443 is required 
->
-> Q1 2023 you can expect additional functionalities like: 
-> * Download a single file or a directory from the RelativityOne fileshare 
-> * File retry policy 
-> * File exclusion policy  
-> * File override policy  
-> * File custom attributes policy (used to set custom metadata on target file)
-
-# Relativity Transfer API for .NET (deprecated since Dec 5th, 2022)
-You can use the Transfer API (TAPI) to build application components that connect to Relativity and stream data from external sources into Relativity storage using different transfer protocols, for example, SMB or Aspera. You can also stream data from Relativity. The API enables optimized data transfer with extensible client architecture and event model using Relativity authentication and logging. For example, you can use the Transfer API to develop an application that loads case data into Relativity for subsequent processing. Unlike the Import API, TAPI doesn't create Relativity objects associated with the data, for example, documents and RDOs.
+# Relativity Transfer API for .NET
+You can use the Transfer API (TAPI) to build application components that connect to Relativity and stream data from external sources into Relativity storage using different transfer protocols, for example, SMB. You can also stream data from Relativity. The API enables optimized data transfer with extensible client architecture and event model using Relativity authentication and logging. For example, you can use the Transfer API to develop an application that loads case data into Relativity for subsequent processing. Unlike the Import API, TAPI doesn't create Relativity objects associated with the data, for example, documents and RDOs.
 
 ## Core TAPI features
 The TAPI includes the following core features:
@@ -40,12 +19,12 @@ We are  providing a sample solution to help you get started developing your own 
 
 ## System requirements
 * Bluestem release for RelativityOne or on-premises Relativity
-* .NET 4.6.2
+* .NET 4.8.1
 * Visual C++ 2010 x86 Runtime
 * Intel 2Ghz (2-4 cores is recommended)
 * 8GB RAM (32GB of RAM is recommended)
 
-***Note:** The Visual C++ runtime is required for Open SSL and Aspera transfer client**
+***Note:** The Visual C++ runtime is required for Open SSL.**
 
 ## Integrations
 As of this writing, TAPI is now integrated within the following components and applications:
@@ -57,10 +36,8 @@ As of this writing, TAPI is now integrated within the following components and a
 ## Supported transfer clients
 The transfer API uses [MEF (Managed Extensibility Framework)](https://docs.microsoft.com/en-us/dotnet/framework/mef/) design to search and construct clients. Relativity supports the following clients:
 
-* Aspera
 * File share
 
-Aspera transfer mode requires access to configured Aspera service.
 File share transfer mode requires access to locations involved in upload or download for example via vpn.
 
 ## Long path support
@@ -71,18 +48,17 @@ The maximum path length now depends on the chosen transfer client.  These limits
 | Transfer Client                | Maximum supported path length                       |
 |--------------------------------|-----------------------------------------------------|
 | File share                     | *N/A*                                               |
-| Aspera                         | 470                                                 |
 
-If a direct file share transfer is used, there is effectively no limit to the path length that can be performed. When using the Aspera transfer client, the maximum path length is now 470 due to limitations with the Aspera API. If a user specifies a source path or target path that is longer than the maximum supported path length, a fatal PathTooLongException will be thrown and the source file won't be transferred.
+If a direct file share transfer is used, there is effectively no limit to the path length that can be performed.
 
 As part of these updates, a GlobalSetting variable has been added to adjust the behavior when a path that is too long for the chosen client to transfer is found during enumeration. This setting, called `SkipTooLongPaths`, is a boolean value. If `true`, any paths longer than the client supported maximum will be classified as an Error Path, and won't be transferred. However, enumeration and the transfer of all other valid paths will complete as part of the transfer job. If `false`, the enumeration will throw a fatal PathTooLongException upon encountering an invalid path length, and the transfer will fail. No files will be transferred in this situation.
 
 ## Sample solution
-The `Sample.sln` solution is an out-of-the-box template for developing your own custom transfer applications and demonstrates Aspera and file share API usage.
+The `Sample.sln` solution is an out-of-the-box template for developing your own custom transfer applications and demonstrates file share API usage.
 
 Prerequisites for running the solution:
 
-* Visual Studio 2015, 2017 or 2019
+* Visual Studio 2019 or 2022
 * A Relativity instance that you can connect to
 * Valid Relativity credentials
 
@@ -95,9 +71,9 @@ Ensure the following 5 settings found in app.config are updated with valid value
 * RelativityPassword
 * WorkspaceId
 
-TransferMode valid values are "Aspera" and "Fileshare". Transfer will be executed in specified mode.
+TransferMode valid value is "Fileshare". Transfer will be executed in the specified mode.
 
-The next sections discuss Aspera and file share TAPI features.
+The next sections discuss file share TAPI features.
 
 * [Object model](#object-model)
 * [Demo](#demo)
@@ -133,7 +109,7 @@ The `CreateTransferLog()` method uses a [Relativity Logging](https://platform.re
 The `CreateRelativityTransferHost()` method defines a [RelativityConnectionInfo](#relativityconnectioninfo) object to specify the Relativity URL, credentials, and optional workspace artifact ID. The URL and credentials are supplied to all HTTP/REST endpoints and TAPI supports both basic authentication and OAuth2 bearer tokens. For more information about Relativity OAuth2 clients, see [Relativity Documentation Site]("https://help.relativity.com/RelativityOne/Content/Relativity/Authentication/OAuth2_clients.htm"). Once constructed, the `RelativityConnectionInfo` object is passed to the [RelativityTransferHost](#relativitytransferhost) constructor.
 
 #### CreateTransferClient
-If a workspace artifact is specified within the `RelativityConnectionInfo` object, the `CreateClientAsync()` method is designed to query the workspace, determine which transfer clients are supported (Aspera or file share), and choose the optimal client. *If* a client is specified within the `ClientConfiguration` object, the `CreateClient()` method explicitly instructs TAPI to construct a certain type of client. There may be circumstances where direct access to the file share is guaranteed and the 
+If a workspace artifact is specified within the `RelativityConnectionInfo` object, the `CreateClientAsync()` method is designed to query the workspace, determine which transfer clients are supported, and choose the optimal client. *If* a client is specified within the `ClientConfiguration` object, the `CreateClient()` method explicitly instructs TAPI to construct a certain type of client. There may be circumstances where direct access to the file share is guaranteed and the 
 Client will always be your best transfer option. For more information, see [Dynamic Transfer Client](#dynamic-transfer-client) and [ITransferClient](#itransferclient).
 
 #### Subscribe to transfer events
@@ -148,7 +124,7 @@ For first time executions, Windows may popup a `Windows Defender` window like th
 
 For this demo, the approach is as follows:
 
-* Create an Aspera or file share specific TAPI client
+* Create a file share TAPI client
 * Specify a target file share
 * Create an upload transfer job request and job
 * Search for the local dataset and add the local transfer paths to the job
@@ -158,7 +134,7 @@ For this demo, the approach is as follows:
 * Change the data rate, await completion, and display the results
 
 #### Create ClientConfiguration object
-The `CreateClientConfiguration()` method is responsible for creating and configuring the [ClientConfiguration](#clientconfiguration) object. This object inherits all of the configurable properties found within [ClientConfiguration](#clientconfiguration), adds numerous Aspera specific transfer properties if Aspera client selected, and assigns `Aspera` or `Fileshare` to the the `Client` property. This value is later evaluated by the `CreateClientAsync()` method to construct the specified TAPI client.
+The `CreateClientConfiguration()` method is responsible for creating and configuring the [ClientConfiguration](#clientconfiguration) object. This object inherits all of the configurable properties found within [ClientConfiguration](#clientconfiguration) and assigns `Fileshare` to the `Client` property. This value is later evaluated by the `CreateClientAsync()` method to construct the specified TAPI client.
 
 #### Search for specific file share
 Using a workspace to drive the selected file share is convenient but doesn't meet all workflow requirements. For example, consider a data migration application to move files from on-premise to RelativityOne. In this scenario, the target workspace may not even exist; however, the migration operator knows precisely which file share should be used. For scenarios like these, the [File Storage Search](#file-storage-search) API is provided.
@@ -198,7 +174,6 @@ The next sections cover TAPI usage including:
 * [RelativityConnectionInfo](#relativityconnectioninfo)
 * [RelativityTransferHost](#relativitytransferhost)
 * [ClientConfiguration](#clientconfiguration)
-* [AsperaClientConfiguration](#asperaclientconfiguration)
 * [ITransferClient](#itransferclient)
 * [Dynamic transfer client](#dynamic-transfer-client)
 * [ITransferClientStrategy](#itransferclientstrategy)
@@ -320,46 +295,10 @@ Before you can create a client, you have to provide a `ClientConfiguration` inst
 
 ***Note:** API users are strongly encouraged to set the `TransferLogDirectory` because clients that support this feature typically write more detailed diagnostic information into their custom log files.*
 
-
-### AsperaClientConfiguration
-The Aspera transfer engine defines a large number of properties to customize the transfer request. As a result, the `AsperaClientConfiguration` class object is more extensive compared to any client and special care must be taken when changing or deviating from some of the default values.
-
-| Property                      | Description                                                                                                                                                                                                                                                                                                                                                                               | Default Value              |
-| ------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|
-| AccountUserName               | The optional Aspera account username. This should only be set when overriding the auto-configured credential. This is retrieved from the workspace's default file share when the client is first initialized.           			                                                                                                                                                        | null                       |
-| AccountPassword               | The optional Aspera account password. This should only be set when overriding the auto-configured credential. This is retrieved from the workspace's default file share when the client is first initialized.           			                                                                                                                                                        | null                       |
-| DocRootLevels                 | The number of levels the Aspera doc root folder is relative to the file share resource server UNC path. This should never be changed unless the server configuration has deviated from the default.                          			                                                                                                                                                    | 1                          |
-| DocRootLevels                 | The number of levels the Aspera doc root folder is relative to the file share resource server UNC path. This should never be changed unless the server configuration has deviated from the default.                          			                                                                                                                                                    | 1                          |
-| HealthCheckLogMaxLine         | The maximum number of lines to retrieve from the Aspera transfer log when performing a diagnostic check.                                                                                                                                                                                                                                                                                  | 100                        |
-| Host                          | The optional Aspera host name. This should only be set when overriding the auto-configured credential. This is retrieved from the workspace's default file share when the client is first initialized.                   			                                                                                                                                                        | null                       |
-| CreateDirectories             | Enable or disable whether to automatically create directories when they don't already exist.                                                                                                                                  			                                                                                                                                                | true                       |
-| EncryptionCipher              | The cipher used to encrypt all transferred data. Accepted values include: NONE|AES_128|AES_192|AES_256                                                                                                                                  			                                                                                                                                        | AES_256                    |
-| FaspDebugEnabled              | Enable or disable whether to apply debug logging to the transfer logs.                                                                                                                                 			                                                                                                                                                                        | false                      |
-| MetaThreadCount               | The number of threads the Aspera receiver uses to create directories or 0 byte files. It takes effect on both client and server, when acting as a receiver. The default of zero causes the Aspera receiver to use its internal default, which may vary by operating system. This is a performance-tuning parameter for an Aspera receiver.                                                | 0                          |
-| NodeAccountUserName           | The optional Aspera Node API account user name. This should only be set when overriding the auto-configured credential. This is retrieved from the workspace's default file share when the client is first initialized.                                                                                                                                                                   | null                       |
-| NodeAccountPassword           | The optional Aspera Node API account password. This should only be set when overriding the auto-configured credential. This is retrieved from the workspace's default file share when the client is first initialized.                                                                                                                                                                    | null                       |
-| NodeHost                      | The optional Aspera Node API host name. This should only be set when overriding the auto-configured credential. This is retrieved from the workspace's default file share when the client is first initialized.                                                                                                                                                                           | null                       |
-| OverwritePolicy               | The policy that determines whether to overwrite files at the target path. The transfer job will fail when this option is disabled and target paths already exist. Accepted values include: DIFFERENT|ALWAYS|DIFFERENT_AND_OLDER|NEVER|OLDER.                                                                                                                                              | ALWAYS                     |
-| PartialFileSuffix             | The filename extension on the destination computer while the file is being transferred. Once the file has been completely transferred, this filename extension is removed. This must be specified when the OverwritePolicy is set.                                                                                                                                                        | .partial                   |
-| Policy                        | The default transfer rate and bandwidth policy. Care must be taken when deviating from the default FAIR policy since it can cause significant transfer errors if an overly aggressive setting is used. Accepted values include: FAIR|FIXED|HIGH|LOW.                                                                                                                                      | FAIR                       |
-| ReadThreadCount               | The number of threads the Aspera sender uses to read file contents from the source disk drive. It takes effect on both client and server when acting as a sender. The default of zero causes the Aspera sender to use its internal default, which may vary by operating system. This is a performance-tuning parameter for an Aspera sender.                                              | 0                          |
-| ResumeCheck                   | The resume policy for partially transferred files. When specified, retry attempts can take longer if the dataset includes a large number of small files.                                                                                                                                                                                                                                  | OFF                        |
-| SaveBeforeOverwriteEnabled    | Enable or disable whether to modify a filename that would overwrite an existing file by renaming to filename.yyyy.mm.dd.hh.mm.ss.index.ext (where index is set to 1 at the beginning of each new second and incremented for each file saved in this manner during the same second) in the same directory before writing the new file. File attributes are maintained in the renamed file. | false                      |
-| ScanThreadCount               | The number of threads the Aspera sender uses to scan directory contents. It takes effect on both client and server, when acting as a sender. The default of zero causes the Aspera sender to use its internal default. This is a performance-tuning parameter for an Aspera sender.                                                                                                       | 0                          |
-| TcpPort                       | The TCP port used for transfer initialization.                                                                                                                                                                                                                                                                                                                                            | 33001                      |
-| TestConnectionDestinationPath | The remote destination path where all test connection zero-byte files are transferred.                                                                                                                                                                                                                                                                                                    | /FTA/TestConnectionResults |
-| UdpPortStartRange             | The UDP start port range used for transferring data.                                                                                                                                                                                                                                                                                                                                      | 33001                      |
-| UdpPortEndRange               | The UDP end port range used for transferring data.                                                                                                                                                                                                                                                                                                                                        | 33050                      |
-| WriteThreadCount              | The number of threads the Aspera receiver uses to write the file contents to the destination disk drive. It takes effect on both client and server, when acting as a receiver. The default of zero causes the Aspera receiver to use its internal default, which may vary by operating system. This is a performance-tuning parameter for an Aspera receiver.                             | 0                          |
-
 ### ITransferClient
 The API caller uses the transfer host to construct the appropriate transfer client. This object implements `IDisposable` to manage client specific object life-cycles. **MEF** is used to dynamically construct the appropriate instance.
 
 ```csharp
-// I need an Aspera client.
-using (ITransferClient client = host.CreateClient(new AsperaClientConfiguration()))
-{ }
-
 // I need a file share client.
 using (ITransferClient client = host.CreateClient(new FileShareClientConfiguration()))
 { }
@@ -393,7 +332,6 @@ using (ITransferClient client = await host.CreateClientAsync(new ClientConfigura
 When using the dynamic transfer client, a strategy design pattern is used to determine the order in which clients are checked for compatibility. Out of the box, the **default strategy** is as follows:
 
 * File share
-* Aspera
 
 The signature for this interface is as follows:
 
@@ -456,9 +394,7 @@ interface IRemotePathResolver
 }
 ```
 
-The primary use-case for path resolvers is adding backwards compatibility to a client. For example, the Aspera client employs resolvers to adapt UNC paths to native Aspera UNIX-style paths.
-
-***Note:** The library provides **AsperaUncPathResolver** for API users that wish to use Aspera clients when using UNC paths exclusively. This is **automatically** used by Aspera jobs as long as `ITransferRequest.RemotePathsInUncFormat` is true.
+The primary use-case for path resolvers is adding backwards compatibility to a client.
 
 ### IRetryStrategy
 The `ITransferRequest` object exposes an optional `RetryStrategy` property to define a method that dictates how much time is spent in between retry attempts. The signature for this interface is as follows:
@@ -501,7 +437,7 @@ There are several options to submit transfers and all revolve around the `ITrans
 | Context                | The **optional** transfer context to configure progress events and logging. |
 | Direction              | The **optional** transfer direction (Upload or Download). This is a global setting which, if specified, automatically updates all `TransferPath` objects **if not already assigned**. |
 | JobId                  | The **optional** unique identifier for the current submission or job. If not specified, a value is automatically assigned. |
-| Name                   | The **optional** name associated with this request. For Aspera transfers, this value is attached to all reporting data and useful for identification and search purposes. |
+| Name                   | The **optional** name associated with this request. When specified, this value is attached to reporting data and useful for identification and search purposes. |
 | Paths                  | The transfer path objects. This is ignored when using a transfer job. |
 | RemotePathsInUncFormat | The **optional** value indicating whether remote paths are in UNC format. This is set to `true` by default. |
 | RetryStrategy          | The **optional** IRetryStrategy instance to define the amount of time to wait in between each retry attempt. By default, an exponential backoff strategy is assigned. |
@@ -591,7 +527,7 @@ using (ITransferClient client = host.CreateClient(configuration))
 This is an ideal approach to take if the number of files is **small** and the required functionality is minimal.
 
 ### Transfer via job
-If the **list of source paths is unknown**, you want to avoid calling `TransferAsync` one file at a time. High-speed clients like Aspera require a significant amount of overhead to setup the transfer request and performance would suffer significantly. To address this scenario, the `ITransferJob` object can be constructed via the client instance. The general idea is to construct a job, continually add transfer paths to the queue as they become known, and then await completion. Beyond large transfers, the `ITransferJob` object provides several other functional advantages such as changing the data rate at runtime and a predictable object life-cycle.
+If the **list of source paths is unknown**, you want to avoid calling `TransferAsync` one file at a time. To address this scenario, the `ITransferJob` object can be constructed via the client instance. The general idea is to construct a job, continually add transfer paths to the queue as they become known, and then await completion. Beyond large transfers, the `ITransferJob` object provides several other functional advantages such as changing the data rate at runtime and a predictable object life-cycle.
 
 It's understood that files are transferred as soon as they're added to the job queue.
 
@@ -673,7 +609,6 @@ This object represents a standard file share resource server and includes severa
 | Property           | Description                                                                                                                                                                       |
 | ------------------ |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ArtifactId         | The file share resource artifact identifier.     |
-| AsperaCredentials  | The Aspera credentials for both storage authentication and REST API file management support. This is only assigned when `CloudInstance` is `true`. |
 | CloudInstance      | The value indicating whether the Relativity instance is running within the RelativityOne cloud environment. |
 | Credential         | The credential used for storage authentication. This is only assigned when `CloudInstance` is `true`. |
 | DocRoot            | The path within the configured file share resource where all transfers are rooted. This is only assigned when `CloudInstance` is `true`. |
@@ -777,7 +712,7 @@ ClientConfiguration configuration = new ClientConfiguration();
 configuration.TargetFileShare = fileShare;
 ```
 
-***Note:** When specifying a target file share and using **remote** UNC paths, it's imperative for the UNC paths to share the same base path as the file share. This can be problematic for transfer clients like Aspera that doesn't support native UNC paths.*
+***Note:** When specifying a target file share and using **remote** UNC paths, it's imperative for the UNC paths to share the same base path as the file share.*
 
 
 
@@ -885,9 +820,9 @@ var enumeration = EnumerationBuilder
 ```
 
 TAPI provides the following implementations of `INodeFilter` - you can define your own.
-* `AspxExtensionFilter` - filters out all files with `.aspx` extension (to prevent errors of Aspera transfers),
+* `AspxExtensionFilter` - filters out all files with `.aspx` extension,
 * `NoReadAccessFileNodeFilter` - checks user's permission against a file (can slow down enumeration significantly),
-* `PathLengthFilter` - finds paths longer than Aspera and file share support,
+* `PathLengthFilter` - finds paths longer than the file share supports,
 * `R1PathSizeFilter` - finds paths longer than RelativityOne supports.
 
 #### Statistics
@@ -966,10 +901,10 @@ public interface EnumerationBuilder : IEnumerationNecessaryActionsBuilder, IEnum
 ```
 
 
-### Change job data rate (Aspera-Only)
+### Change job data rate
 The `ClientConfiguration` object supports setting a minimum and target data rate. There are situations where the API user would like to *change* the data rate at runtime. To facilitate this feature, the `ITransferJob` object allows each TAPI client to provide an implementation.
 
-This feature is currently limited to the **Aspera client** and any attempt to call this method on a job/client that doesn't support setting or changing the data rate will throw `NotSupportedException`. To provide the API user a cleaner way to use this feature, the `IsDataRateChangedSupported` property is provided.
+Note that not all clients support this feature. Any attempt to call this method on a client that doesn't support setting or changing the data rate will throw `NotSupportedException`. To provide the API user a cleaner way to use this feature, the `IsDataRateChangedSupported` property is provided.
 
 ```csharp
 using (ITransferJob job = await client.CreateJobAsync(request))
@@ -1171,8 +1106,8 @@ If TAPI determines that a transfer error can be retried, it will attempt to retr
 
 | Setting Name          | Description |
 | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| BadPathErrorsRetry    | When TAPI encounters a bad path error from Aspera only, it will use this setting to determine whether it should retry. TAPI has checks in place to prevent paths from being passed in that are invalid or otherwise not able to be transferred, so this error has only been observed during times of high load when Aspera may not be throwing the correct error code. |
-| PermissionErrorsRetry | When TAPI encounters a permission error when transferring using Aspera, Web or file share, it will use this setting to determine whether it should retry. Similar to bad path errors, this will typically be thrown during times of high load, when Aspera is not necessarily throwing the correct error code. |
+| BadPathErrorsRetry    | When TAPI encounters a bad path error, it will use this setting to determine whether it should retry. TAPI has checks in place to prevent paths from being passed in that are invalid or otherwise not able to be transferred. |
+| PermissionErrorsRetry | When TAPI encounters a permission error when transferring, it will use this setting to determine whether it should retry. |
 
 The `ITransferStatistics` object has properties that indicate how many times the above errors have been encountered and retried. This object has a count of TotalBadPathErrors and TotalFilePermissionsErrors, which will be incremented every time these errors are encountered.
 
@@ -1195,7 +1130,6 @@ A number of common but optional settings are exposed by the `GlobalSettings` sin
 | MaxBytesPerBatch                           | The maximum number of bytes per batch. This is only applicable when transferring via serialized batches.                                             | 100GB                                              |
 | MaxFilesPerBatch                           | The maximum number of files per batch. This is only applicable when transferring via serialized batches.                                             | 50,000                                             |
 | MemoryProtectionScope                      | The memory protection scope applied to all data protection API (DPAPI) usage.                                                                        | MemoryProtectionScope.SameProcess                  |
-| NodePageSize                               | The default page size when making Aspera Node REST API calls.                                                                                        | 100                                                |
 | PluginDirectory                            | The directory where all plugins are located.                                                                                                         | Working directory                                  |
 | PluginFileNameFilter                       | The file name filter to limit which files are searched for plugins.                                                                                  | *.dll                                              |
 | PluginFileNameMatch                        | The file name match expression to limit which files are searched for plugins.                                                                        | Relativity.Transfer                                |
@@ -1277,19 +1211,19 @@ catch (RelativityNotSupportedException)
 All `DateTime` objects values used by TAPI are in local time.
 
 ### Binding redirect for Json.NET
-Relativity and the APIs consumed by Relativity use several different versions of the Newtonsoft.Json library, which can cause assembly version conflict at both build and run time. This is the recommended assembly binding redirect to Newtonsoft.Json version 6.0.0.0 to add to the consuming application (`app.config`) or web (`web.config`) configuration file. It ensures that almost any version of `Newtonsoft.Json` will work with the TAPI:
+Relativity and the APIs consumed by Relativity use several different versions of the Newtonsoft.Json library, which can cause assembly version conflict at both build and run time. This is the recommended assembly binding redirect to Newtonsoft.Json version 13.0.0.0 to add to the consuming application (`app.config`) or web (`web.config`) configuration file. It ensures that almost any version of `Newtonsoft.Json` will work with the TAPI:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
       <startup>
-      <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.6.2" />
+      <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.8.1" />
       </startup>  
       <runtime>
             <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">             
                  <dependentAssembly>
                  <assemblyIdentity name="Newtonsoft.Json" publicKeyToken="30ad4fe6b2a6aeed" culture="neutral" />
-                       <bindingRedirect oldVersion="0.0.0.0-10.0.0.0" newVersion="6.0.0.0" />
+                       <bindingRedirect oldVersion="0.0.0.0-13.0.0.0" newVersion="13.0.0.0" />
                  </dependentAssembly>
            </assemblyBinding>
       </runtime>
