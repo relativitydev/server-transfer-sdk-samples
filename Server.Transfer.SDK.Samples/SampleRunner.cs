@@ -111,7 +111,7 @@ namespace Relativity.Server.Transfer.SDK.Samples
             };
 
             // Configure the optional SEQ sink.
-            loggerOptions.AddSinkParameter(SeqSinkConfig.ServerUrlSinkParameterKey, new Uri("https://p-dv-vm-sew1tie"));
+            loggerOptions.AddSinkParameter(SeqSinkConfig.ServerUrlSinkParameterKey, new Uri("https://p-dv-vm-max7ken/"));
             ILog logger = LogFactory.GetLogger(loggerOptions);
             return new RelativityTransferLog(logger, true);
         }
